@@ -1,4 +1,4 @@
-name: Deploy EduMart Application
+name: 🚀 Deploy EduMart Laravel App to EC2
 
 on:
   push:
@@ -9,28 +9,44 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v3
-    
+    # 🧩 Step 1: Checkout your repository
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 🧰 Step 2: Setup PHP (same as before)
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.2'
-        
+
+    # ⚙️ Step 3: Move to correct Laravel folder (if project is in subdirectory)
+    # 👉 Change 'Education-Management' to your actual Laravel project folder name
+    - name: Set working directory
+      run: cd Education-Management
+
+    # 🔑 Step 4: Copy .env (for local action use only)
     - name: Copy .env
-      run: php -r "file_exists('.env') || copy('.env.example', '.env');"
-    
+      run: php -r "file_exists('Education-Management/.env') || copy('Education-Management/.env.example', 'Education-Management/.env');"
+
+    # 📦 Step 5: Install Composer dependencies
     - name: Install Dependencies
-      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-      
+      working-directory: EduMart
+      run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+    # 🔐 Step 6: Generate Laravel app key
     - name: Generate key
+      working-directory: Education-Management
       run: php artisan key:generate
-      
+
+    # 🗂 Step 7: Fix permissions for local workflow
     - name: Directory Permissions
+      working-directory: Education-Management
       run: chmod -R 777 storage bootstrap/cache
-    
-    - name: Deploy Laravel App
+
+    # 🚀 Step 8: Deploy to EC2 using SSH
+    - name: Deploy Laravel App to EC2
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.HOST }}
@@ -45,6 +61,6 @@ jobs:
           php artisan route:cache
           php artisan view:cache
           php artisan optimize
-          chown -R www-data:www-data .
-          chmod -R 755 .
-          chmod -R 777 storage bootstrap/cache
+          sudo chown -R www-data:www-data .
+          sudo chmod -R 755 .
+          sudo chmod -R 777 storage bootstrap/cache
