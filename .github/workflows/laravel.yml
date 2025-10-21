@@ -24,7 +24,7 @@ jobs:
     # ⚙️ Step 3: Move to correct Laravel folder (if project is in subdirectory)
     # 👉 Change 'Education-Management' to your actual Laravel project folder name
     - name: Set working directory
-      run: cd Education-Management
+      run: cd EduMart
 
     # 🔑 Step 4: Copy .env (for local action use only)
     - name: Copy .env
@@ -37,12 +37,12 @@ jobs:
 
     # 🔐 Step 6: Generate Laravel app key
     - name: Generate key
-      working-directory: Education-Management
+      working-directory: EduMart
       run: php artisan key:generate
 
     # 🗂 Step 7: Fix permissions for local workflow
     - name: Directory Permissions
-      working-directory: Education-Management
+      working-directory: EduMart
       run: chmod -R 777 storage bootstrap/cache
 
     # 🚀 Step 8: Deploy to EC2 using SSH
