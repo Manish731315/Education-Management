@@ -5,39 +5,47 @@ FROM composer:2 AS vendor
 
 WORKDIR /app
 
-# Copy composer files and install PHP dependencies
+# Copy only composer files first for caching
 COPY composer.json composer.lock ./
+
+# Install PHP dependencies (no dev, optimized autoloader)
 RUN composer install --no-dev --no-scripts --prefer-dist --optimize-autoloader
 
 # ---------------------------------------
-# Stage 2: Application setup (PHP + Apache)
+# Stage 2: PHP + Apache + Application
 # ---------------------------------------
 FROM php:8.2-apache
 
-# Install required PHP extensions
+# Install required PHP extensions and system packages
 RUN apt-get update && apt-get install -y \
     git unzip zip libpng-dev libonig-dev libxml2-dev libzip-dev curl \
-    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip
-
-# Enable Apache rewrite module
-RUN a2enmod rewrite
+    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd zip \
+    && a2enmod rewrite \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy existing application code
+# Set Apache document root to Laravel's public folder
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+
+# Update Apache configuration to point to public folder
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
+    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}/!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+# Copy full application code
 COPY . .
 
 # Copy dependencies from vendor stage
 COPY --from=vendor /app/vendor ./vendor
 
-# Copy environment example
+# Copy .env file
 RUN cp .env.example .env
 
 # Generate Laravel app key
 RUN php artisan key:generate
 
-# Set permissions for Laravel
+# Set proper permissions for Laravel
 RUN chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
