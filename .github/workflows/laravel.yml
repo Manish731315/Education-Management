@@ -22,13 +22,13 @@ jobs:
         php-version: '8.2'
 
     # ⚙️ Step 3: Move to correct Laravel folder (if project is in subdirectory)
-    # 👉 Change 'Education-Management' to your actual Laravel project folder name
+    # 👉 Change 'EduMart' to your actual Laravel project folder name
     - name: Set working directory
       run: cd EduMart
 
     # 🔑 Step 4: Copy .env (for local action use only)
     - name: Copy .env
-      run: php -r "file_exists('Education-Management/.env') || copy('Education-Management/.env.example', 'Education-Management/.env');"
+      run: php -r "file_exists('EduMart/.env') || copy('EduMart/.env.example', 'EduMart/.env');"
 
     # 📦 Step 5: Install Composer dependencies
     - name: Install Dependencies
