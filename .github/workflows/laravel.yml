@@ -1,35 +1,66 @@
-name: Laravel
+name: 🚀 Deploy EduMart Laravel App to EC2
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
-  laravel-tests:
-
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: shivammathur/setup-php@15c43e89cdef867065b0213be354c2841860869e
+    # 🧩 Step 1: Checkout your repository
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 🧰 Step 2: Setup PHP (same as before)
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.0'
-    - uses: actions/checkout@v4
+        php-version: '8.2'
+
+    # ⚙️ Step 3: Move to correct Laravel folder (if project is in subdirectory)
+    # 👉 Change 'Education-Management' to your actual Laravel project folder name
+    - name: Set working directory
+      run: cd Education-Management
+
+    # 🔑 Step 4: Copy .env (for local action use only)
     - name: Copy .env
-      run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+      run: php -r "file_exists('Education-Management/.env') || copy('Education-Management/.env.example', 'Education-Management/.env');"
+
+    # 📦 Step 5: Install Composer dependencies
     - name: Install Dependencies
+      working-directory: EduMart
       run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+    # 🔐 Step 6: Generate Laravel app key
     - name: Generate key
+      working-directory: Education-Management
       run: php artisan key:generate
+
+    # 🗂 Step 7: Fix permissions for local workflow
     - name: Directory Permissions
+      working-directory: Education-Management
       run: chmod -R 777 storage bootstrap/cache
-    - name: Create Database
-      run: |
-        mkdir -p database
-        touch database/database.sqlite
-    - name: Execute tests (Unit and Feature tests) via PHPUnit/Pest
-      env:
-        DB_CONNECTION: mysql
-        DB_DATABASE: database/database.myswl
-      run: php artisan test
+
+    # 🚀 Step 8: Deploy to EC2 using SSH
+    - name: Deploy Laravel App to EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        script: |
+          cd /var/www/html/edumart
+          git pull origin main
+          composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+          php artisan migrate --force
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          php artisan optimize
+          sudo chown -R www-data:www-data .
+          sudo chmod -R 755 .
+          sudo chmod -R 777 storage bootstrap/cache
