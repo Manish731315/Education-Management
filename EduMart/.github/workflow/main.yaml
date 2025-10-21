@@ -1,0 +1,12 @@
+- name: Deploy Laravel App
+  uses: appleboy/ssh-action@v1.0.3
+  with:
+    host: ${{ secrets.HOST }}
+    username: ${{ secrets.USERNAME }}
+    key: ${{ secrets.KEY }}
+    script: |
+      cd /var/www/html/edumart
+      git pull origin main
+      composer install
+      php artisan migrate --force
+      php artisan optimize
